@@ -38,7 +38,8 @@ function onResize() {
   renderer.setSize(w, h);
   camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    document.querySelector('#a-canvas').style.display = "none";
+    document.getElementsByClass('a-canvas')[0].style.display = "none";
+    document.getElementsByClassName('a-canvas').style.display = "none";
 }
 
 window.addEventListener('resize', onResize, false);
