@@ -31,8 +31,8 @@ function tick() {
 }
 
 function onResize() {
-  canvas.style.width = window.innerWidth + 'px';
-  canvas.style.height = window.innerHeight + 'px';
+  canvas.style.width = 0 + 'px';
+  canvas.style.height = 0 + 'px';
   var w = window.innerWidth;
   var h = window.innerHeight;
   renderer.setSize(w, h);
