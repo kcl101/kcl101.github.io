@@ -12,7 +12,7 @@ var video = document.querySelector('#video');
 
   var artoolkit = new ARToolKit({
     canvasWidth: 640,
-    canvasHeight: 480,
+    canvasHeight:   480,
     debug: false,
     onSuccess: function() {
       artoolkit.process(context.getImageData(0, 0, 640, 480));
@@ -37,7 +37,8 @@ function onResize() {
   var h = window.innerHeight;
   renderer.setSize(w, h);
   camera.aspect = w / h;
-  camera.updateProjectionMatrix();
+    camera.updateProjectionMatrix();
+    document.querySelector('#a-canvas').style.display = "none";
 }
 
 window.addEventListener('resize', onResize, false);
