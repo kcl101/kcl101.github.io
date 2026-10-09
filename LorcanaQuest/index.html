@@ -44,14 +44,6 @@
             box-shadow: 1px 1px 0px #000000;
         }
 
-        .wf-select {
-            background-color: #67e8f9;
-            color: #0f172a;
-            font-weight: 700;
-            border: 2px solid #0891b2;
-            box-shadow: 2px 2px 0px #000000;
-        }
-
         /* Card Slot Styles */
         .card-slot-box {
             border: 3px solid #000000;
@@ -100,13 +92,17 @@
     <header class="w-full bg-slate-900/90 border-2 border-slate-700 rounded-xl p-3 sm:p-4 mb-6 shadow-xl backdrop-blur-md">
         <div class="flex flex-wrap items-center justify-between gap-3 md:gap-4">
             
-            <!-- Left Controls: Draw & Reveal Buttons -->
+            <!-- Left Controls: Draw, Reveal & Extreme Discard Buttons -->
             <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                 <button id="btn-draw" onclick="drawCards()" class="wf-btn px-3 py-2 text-xs sm:text-sm md:text-base rounded">
                     Draw (Deck: <span id="deck-count">49</span>)
                 </button>
                 <button id="btn-reveal" onclick="openRevealModal('reveal')" class="wf-btn px-3 py-2 text-xs sm:text-sm md:text-base rounded">
                     Reveal (Hand: <span id="hand-count">0</span>)
+                </button>
+                <!-- Extreme Difficulty Random Hand Discard Button -->
+                <button id="btn-extreme-discard" onclick="discardRandomHandCard()" class="wf-btn px-3 py-2 text-xs sm:text-sm md:text-base rounded bg-red-500 text-slate-950 border-red-700 hover:bg-red-400 hidden">
+                    [Discard]
                 </button>
             </div>
 
@@ -116,7 +112,7 @@
                 <div class="flex items-center gap-1 bg-amber-300 text-slate-900 px-2.5 py-1.5 rounded font-bold border-2 border-amber-500 shadow-[2px_2px_0px_#000]">
                     <label for="diff-select" class="whitespace-nowrap text-xs sm:text-sm">Diff:</label>
                     <select id="diff-select" onchange="onDifficultyChange(this.value)" class="bg-transparent font-extrabold focus:outline-none text-slate-900 cursor-pointer text-xs sm:text-sm">
-                        <option value="Easy">Easy</option>
+                        <option value="Easy">Easy (No Lore Draw)</option>
                         <option value="Normal" selected>Normal</option>
                         <option value="Hard">Hard (+1 Draw)</option>
                         <option value="Extreme">Extreme (+1 Draw)</option>
@@ -360,8 +356,14 @@
         function getDrawCountForRules(playerCount, lore, difficulty) {
             const p = parseInt(playerCount, 10) || 2;
             const l = parseInt(lore, 10) || 0;
-            let draw = 2;
 
+            // Easy difficulty completely ignores lore threshold extra draws!
+            if (difficulty === 'Easy') {
+                return (p <= 2) ? 2 : 3;
+            }
+
+            // Normal / Hard / Extreme lore threshold calculation
+            let draw = 2;
             if (p === 1) {
                 draw = l < 20 ? 2 : 3;
             } else if (p === 2) {
@@ -416,6 +418,40 @@
             }
 
             showToast(`Drew ${actualDraw} card(s) to Ursula's Hand!`);
+            saveState();
+            renderUI();
+        }
+
+        /**
+         * Discards a card at random from Ursula's hand (Extreme Mode feature)
+         */
+        function discardRandomHandCard() {
+            if (gameState.hand.length === 0) {
+                showToast("Ursula's Hand is empty!");
+                return;
+            }
+
+            const randomIndex = Math.floor(Math.random() * gameState.hand.length);
+            const discarded = gameState.hand.splice(randomIndex, 1)[0];
+            gameState.discard.push(discarded);
+
+            showToast(`Randomly discarded ${discarded.code} from Hand!`);
+            saveState();
+            renderUI();
+        }
+
+        /**
+         * Returns a card from Ursula's row directly to her hand (Extreme Mode feature)
+         */
+        function returnCardToHand(index) {
+            if (index < 0 || index >= gameState.row.length) return;
+
+            const returned = gameState.row.splice(index, 1)[0];
+            returned.exerted = false;
+            returned.damage = 0;
+            gameState.hand.push(returned);
+
+            showToast(`Returned ${returned.code} to Hand!`);
             saveState();
             renderUI();
         }
@@ -646,6 +682,14 @@
             document.getElementById('pcount-select').value = gameState.playerCount;
             document.getElementById('diff-select').value = gameState.difficulty;
 
+            // Handle Extreme mode Hand Discard button visibility
+            const extremeDiscardBtn = document.getElementById('btn-extreme-discard');
+            if (gameState.difficulty === 'Extreme') {
+                extremeDiscardBtn.classList.remove('hidden');
+            } else {
+                extremeDiscardBtn.classList.add('hidden');
+            }
+
             // Start/Reset Button text
             const startResetBtn = document.getElementById('btn-start-reset');
             if (gameState.gameStarted) {
@@ -659,6 +703,7 @@
             gridContainer.innerHTML = '';
 
             const TOTAL_SLOTS = 8;
+            const isExtreme = (gameState.difficulty === 'Extreme');
 
             for (let i = 0; i < TOTAL_SLOTS; i++) {
                 const card = gameState.row[i] || null;
@@ -666,16 +711,24 @@
                 slotWrapper.className = "flex flex-col items-center w-full";
 
                 if (card) {
+                    // Extreme Mode "TO HAND" Button markup
+                    const toHandBtnMarkup = isExtreme ? `
+                        <button onclick="returnCardToHand(${i})" class="wf-btn text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded bg-purple-400 text-purple-950 hover:bg-purple-300 transition">
+                            TO HAND
+                        </button>
+                    ` : '';
+
                     // Filled Card Slot
                     slotWrapper.innerHTML = `
-                        <!-- Banish & Enlarge Buttons Top -->
-                        <div class="flex items-center gap-1 mb-1.5 w-full justify-center">
-                            <button onclick="banishCard(${i})" class="wf-btn text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded bg-gray-300 text-gray-900 hover:bg-red-500 hover:text-white transition">
+                        <!-- Banish, Enlarge & TO HAND Top Buttons -->
+                        <div class="flex items-center gap-1 mb-1.5 w-full justify-center flex-wrap">
+                            <button onclick="banishCard(${i})" class="wf-btn text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded bg-gray-300 text-gray-900 hover:bg-red-500 hover:text-white transition">
                                 Banish
                             </button>
-                            <button onclick="enlargeCard(${i})" class="wf-btn text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded bg-cyan-300 text-cyan-950 hover:bg-cyan-200 transition">
+                            <button onclick="enlargeCard(${i})" class="wf-btn text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded bg-cyan-300 text-cyan-950 hover:bg-cyan-200 transition">
                                 Enlarge
                             </button>
+                            ${toHandBtnMarkup}
                         </div>
 
                         <!-- Card Slot Box Container -->
