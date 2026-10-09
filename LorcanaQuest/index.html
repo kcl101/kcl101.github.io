@@ -172,12 +172,12 @@
     <main class="flex-1 w-full max-w-[1600px] mx-auto flex flex-col justify-center">
         <!-- Status Header / Guide -->
         <div id="status-banner" class="mb-4 text-center text-xs sm:text-sm text-slate-400 uppercase tracking-widest font-semibold">
-            Ursula's Active Row (7 Slots)
+            Ursula's Active Row (8 Slots)
         </div>
 
-        <!-- 7 Slots Grid -->
-        <div id="card-row-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 md:gap-4 items-start">
-            <!-- Dynamic 7 slots populated by JS -->
+        <!-- 8 Slots Grid -->
+        <div id="card-row-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3 md:gap-4 items-start">
+            <!-- Dynamic 8 slots populated by JS -->
         </div>
     </main>
 
@@ -262,7 +262,7 @@
             hand: [],
             row: [], // Array of active cards on board
             discard: [],
-            inkwell: 0, // Ursula starts with 1 inkwell in Deep Trouble scenario setup
+            inkwell: 0, // Ursula starts with 0 inkwell
             lore: 0
         };
 
@@ -535,13 +535,13 @@
                 gameState.discard.push(card);
                 showToast(`Discarded ${card.code}`);
             } else if (action === 'ADD_TO_ROW') {
-                if (gameState.row.length < 7) {
+                if (gameState.row.length < 8) {
                     card.exerted = false;
                     card.damage = 0;
                     gameState.row.push(card);
                     showToast(`Added ${card.code} to Row!`);
                 } else {
-                    showToast("Row is full! Max 7 slots reached.");
+                    showToast("Row is full! Max 8 slots reached.");
                     gameState.hand.unshift(card); // Put back to hand
                     return;
                 }
@@ -654,11 +654,11 @@
                 startResetBtn.innerText = "Start";
             }
 
-            // Render 7 Active Slots Row
+            // Render 8 Active Slots Row
             const gridContainer = document.getElementById('card-row-grid');
             gridContainer.innerHTML = '';
 
-            const TOTAL_SLOTS = 7;
+            const TOTAL_SLOTS = 8;
 
             for (let i = 0; i < TOTAL_SLOTS; i++) {
                 const card = gameState.row[i] || null;
