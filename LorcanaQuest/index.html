@@ -95,10 +95,10 @@
             <!-- Left Controls: Draw, Reveal & Extreme Discard Buttons -->
             <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                 <button id="btn-draw" onclick="drawCards()" class="wf-btn px-3 py-2 text-xs sm:text-sm md:text-base rounded">
-                    Draw (Deck: <span id="deck-count">49</span>)
+                    Draw (<span id="deck-count">49</span>)
                 </button>
                 <button id="btn-reveal" onclick="openRevealModal('reveal')" class="wf-btn px-3 py-2 text-xs sm:text-sm md:text-base rounded">
-                    Reveal (Hand: <span id="hand-count">0</span>)
+                    Reveal (<span id="hand-count">0</span>)
                 </button>
                 <!-- Extreme Difficulty Random Hand Discard Button -->
                 <button id="btn-extreme-discard" onclick="discardRandomHandCard()" class="wf-btn px-3 py-2 text-xs sm:text-sm md:text-base rounded bg-red-500 text-slate-950 border-red-700 hover:bg-red-400 hidden">
@@ -110,18 +110,18 @@
             <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                 <!-- Difficulty Selection Dropdown -->
                 <div class="flex items-center gap-1 bg-amber-300 text-slate-900 px-2.5 py-1.5 rounded font-bold border-2 border-amber-500 shadow-[2px_2px_0px_#000]">
-                    <label for="diff-select" class="whitespace-nowrap text-xs sm:text-sm">Diff:</label>
+                    <label for="diff-select" class="whitespace-nowrap text-xs sm:text-sm"></label>
                     <select id="diff-select" onchange="onDifficultyChange(this.value)" class="bg-transparent font-extrabold focus:outline-none text-slate-900 cursor-pointer text-xs sm:text-sm">
-                        <option value="Easy">Easy (No Lore Draw)</option>
+                        <option value="Easy">Easy</option>
                         <option value="Normal" selected>Normal</option>
-                        <option value="Hard">Hard (+1 Draw)</option>
-                        <option value="Extreme">Extreme (+1 Draw)</option>
+                        <option value="Hard">Hard</option>
+                        <option value="Extreme">Extreme</option>
                     </select>
                 </div>
 
                 <!-- Player Count Dropdown -->
                 <div class="flex items-center gap-1 bg-cyan-300 text-slate-900 px-2.5 py-1.5 rounded font-bold border-2 border-cyan-500 shadow-[2px_2px_0px_#000]">
-                    <label for="pcount-select" class="whitespace-nowrap text-xs sm:text-sm">PCount:</label>
+                    <label for="pcount-select" class="whitespace-nowrap text-xs sm:text-sm"></label>
                     <select id="pcount-select" onchange="onPlayerCountChange(this.value)" class="bg-transparent font-extrabold focus:outline-none text-slate-900 cursor-pointer text-xs sm:text-sm">
                         <option value="1">1</option>
                         <option value="2" selected>2</option>
