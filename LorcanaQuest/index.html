@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disney Lorcana - Ursula's Deep Trouble Simulator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Chakra Petch for modern gaming UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Chakra Petch', sans-serif;
+            background-color: #12151c;
+            color: #f1f5f9;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Wireframe retro style button styling matching user interface mockup */
+        .wf-btn {
+            background-color: #bbbdc0;
+            color: #111827;
+            font-weight: 700;
+            border: 2px solid #6b7280;
+            box-shadow: 2px 2px 0px #000000;
+            transition: all 0.15s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wf-btn:hover {
+            background-color: #d1d5db;
+            transform: translateY(-1px);
+            box-shadow: 3px 3px 0px #000000;
+        }
+
+        .wf-btn:active {
+            transform: translateY(1px);
+            box-shadow: 1px 1px 0px #000000;
+        }
+
+        .wf-select {
+            background-color: #67e8f9;
+            color: #0f172a;
+            font-weight: 700;
+            border: 2px solid #0891b2;
+            box-shadow: 2px 2px 0px #000000;
+        }
+
+        /* Card Slot Styles */
+        .card-slot-box {
+            border: 3px solid #000000;
+            background-color: #1e293b;
+            border-radius: 6px;
+            aspect-ratio: 2.5 / 3.5;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Exerted card rotation */
+        .card-inner-rotated {
+            transform: rotate(90deg) scale(0.85);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .card-inner-normal {
+            transform: rotate(0deg) scale(1);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        /* Toast message styling */
+        #toast {
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col p-2 sm:p-4 md:p-6 text-gray-100">
+
+    <!-- Top Control Bar Container -->
+    <header class="w-full bg-slate-900/90 border-2 border-slate-700 rounded-xl p-3 sm:p-4 mb-6 shadow-xl backdrop-blur-md">
+        <div class="flex flex-wrap items-center justify-between gap-3 md:gap-4">
+            
+            <!-- Left Controls: Draw & Reveal Buttons -->
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                <button id="btn-draw" onclick="drawCards()" class="wf-btn px-3 py-2 text-xs sm:text-sm md:text-base rounded">
+                    Draw (Deck: <span id="deck-count">49</span>)
+                </button>
+                <button id="btn-reveal" onclick="openRevealModal('reveal')" class="wf-btn px-3 py-2 text-xs sm:text-sm md:text-base rounded">
+                    Reveal (Hand: <span id="hand-count">0</span>)
+                </button>
+            </div>
+
+            <!-- Center Controls: Difficulty Dropdown, Player Count & Start/Reset -->
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                <!-- Difficulty Selection Dropdown -->
+                <div class="flex items-center gap-1 bg-amber-300 text-slate-900 px-2.5 py-1.5 rounded font-bold border-2 border-amber-500 shadow-[2px_2px_0px_#000]">
+                    <label for="diff-select" class="whitespace-nowrap text-xs sm:text-sm">Diff:</label>
+                    <select id="diff-select" onchange="onDifficultyChange(this.value)" class="bg-transparent font-extrabold focus:outline-none text-slate-900 cursor-pointer text-xs sm:text-sm">
+                        <option value="Easy">Easy</option>
+                        <option value="Normal" selected>Normal</option>
+                        <option value="Hard">Hard (+1 Draw)</option>
+                        <option value="Extreme">Extreme (+1 Draw)</option>
+                    </select>
+                </div>
+
+                <!-- Player Count Dropdown -->
+                <div class="flex items-center gap-1 bg-cyan-300 text-slate-900 px-2.5 py-1.5 rounded font-bold border-2 border-cyan-500 shadow-[2px_2px_0px_#000]">
+                    <label for="pcount-select" class="whitespace-nowrap text-xs sm:text-sm">PCount:</label>
+                    <select id="pcount-select" onchange="onPlayerCountChange(this.value)" class="bg-transparent font-extrabold focus:outline-none text-slate-900 cursor-pointer text-xs sm:text-sm">
+                        <option value="1">1</option>
+                        <option value="2" selected>2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                    </select>
+                </div>
+
+                <button id="btn-start-reset" onclick="handleStartOrReset()" class="wf-btn px-3 py-2 text-xs sm:text-sm md:text-base rounded">
+                    Start / Reset
+                </button>
+            </div>
+
+            <!-- Right Controls: Counters (Discard, Inkwell, Lore) -->
+            <div class="flex items-center gap-2 sm:gap-4 flex-wrap">
+                <!-- Discard Display -->
+                <div class="text-xs sm:text-sm font-bold bg-slate-800 px-2.5 py-1.5 rounded border border-slate-600 shadow">
+                    Discard: <span id="discard-count" class="text-cyan-400 font-black">0</span>
+                </div>
+
+                <!-- Inkwell Counter -->
+                <div class="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1.5 rounded border border-slate-600 shadow">
+                    <span class="text-xs sm:text-sm font-bold">Inkwell: <span id="inkwell-count" class="text-amber-400 font-black">0</span></span>
+                    <div class="flex flex-col gap-0.5 ml-1">
+                        <button onclick="updateInkwell(1)" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-1.5 py-0.5 rounded font-bold leading-none">+</button>
+                        <button onclick="updateInkwell(-1)" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-1.5 py-0.5 rounded font-bold leading-none">-</button>
+                    </div>
+                </div>
+
+                <!-- Lore Counter -->
+                <div class="flex items-center gap-2 bg-slate-800 px-2.5 py-1.5 rounded border border-slate-600 shadow">
+                    <span class="text-xs sm:text-sm font-bold">Lore: <span id="lore-count" class="text-purple-400 font-black">0</span></span>
+                    <div class="flex flex-col gap-0.5">
+                        <button onclick="updateLore(1)" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-2 py-0.5 rounded font-bold leading-none">+</button>
+                        <button onclick="updateLore(-1)" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-2 py-0.5 rounded font-bold leading-none">-</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- Main Board Row Section -->
+    <main class="flex-1 w-full max-w-[1600px] mx-auto flex flex-col justify-center">
+        <!-- Status Header / Guide -->
+        <div id="status-banner" class="mb-4 text-center text-xs sm:text-sm text-slate-400 uppercase tracking-widest font-semibold">
+            Ursula's Active Row (7 Slots)
+        </div>
+
+        <!-- 7 Slots Grid -->
+        <div id="card-row-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 md:gap-4 items-start">
+            <!-- Dynamic 7 slots populated by JS -->
+        </div>
+    </main>
+
+    <!-- Full-Page Overlay Modal for Reveal & Enlarge -->
+    <div id="reveal-modal" class="fixed inset-0 bg-black/85 z-50 hidden flex items-center justify-center p-4 backdrop-blur-md">
+        <!-- Close button top-right -->
+        <button onclick="closeRevealModal()" class="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white font-black text-xl w-10 h-10 rounded-full flex items-center justify-center border-2 border-white/50 shadow-lg cursor-pointer transition z-10">
+            ✕
+        </button>
+
+        <!-- Modal Content Box -->
+        <div class="flex flex-col md:flex-row items-center justify-center gap-6 max-w-4xl w-full max-h-[90vh] bg-slate-900 border-2 border-cyan-500 rounded-2xl p-6 shadow-2xl relative">
+            
+            <!-- Card View Container (Only Card Image) -->
+            <div id="modal-card-display" class="w-full max-w-[340px] md:max-w-[420px] h-[70vh] max-h-[580px] flex items-center justify-center relative">
+                <!-- Image populated dynamically -->
+            </div>
+
+            <!-- Action Controls (Hidden in Enlarge mode) -->
+            <div id="modal-actions-container" class="flex flex-col sm:flex-row md:flex-col gap-3 w-full md:w-56 justify-center">
+                <button onclick="handleRevealAction('DISCARD')" class="wf-btn bg-red-500 hover:bg-red-400 text-slate-950 font-black py-3 px-4 rounded-xl text-base sm:text-lg tracking-wider border-2 border-red-700 shadow-lg">
+                    [DISCARD]
+                </button>
+                <button onclick="handleRevealAction('ADD_TO_ROW')" class="wf-btn bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black py-3 px-4 rounded-xl text-base sm:text-lg tracking-wider border-2 border-emerald-600 shadow-lg">
+                    [ADD TO ROW]
+                </button>
+                <button onclick="handleRevealAction('TO_INKWELL')" class="wf-btn bg-amber-400 hover:bg-amber-300 text-slate-950 font-black py-3 px-4 rounded-xl text-base sm:text-lg tracking-wider border-2 border-amber-600 shadow-lg">
+                    [TO INKWELL]
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-cyan-600 text-white font-bold px-4 py-3 rounded-lg shadow-2xl opacity-0 pointer-events-none translate-y-2 z-50 border border-cyan-300">
+        Notification message
+    </div>
+
+    <script>
+        /* Exact Official Decklist Mapping (31 Unique Cards / 50 Cards Total) */
+        const CARD_DATA = [
+            { num: 1,  code: "Q1-001", name: "Anna - Ensnared Sister", type: "Glimmer", cost: 3, qty: 2 },
+            { num: 2,  code: "Q1-002", name: "Bruno Madrigal - Unspeakable Seer", type: "Glimmer", cost: 4, qty: 2 },
+            { num: 3,  code: "Q1-003", name: "Captain Hook - Devious Duelist", type: "Glimmer", cost: 2, qty: 2 },
+            { num: 4,  code: "Q1-004", name: "Flotsam - Wicked Defender", type: "Glimmer", cost: 3, qty: 1 },
+            { num: 5,  code: "Q1-005", name: "Gaston - Egotistical Bully", type: "Glimmer", cost: 2, qty: 1 },
+            { num: 6,  code: "Q1-006", name: "HeiHei - Peckish Pal", type: "Glimmer", cost: 1, qty: 2 },
+            { num: 7,  code: "Q1-007", name: "Hercules - Manipulated Hero", type: "Glimmer", cost: 3, qty: 1 },
+            { num: 8,  code: "Q1-008", name: "Jafar - Double-Crossing Vizier", type: "Glimmer", cost: 4, qty: 1 },
+            { num: 9,  code: "Q1-009", name: "Jetsam - Wicked Whisperer", type: "Glimmer", cost: 3, qty: 1 },
+            { num: 10, code: "Q1-010", name: "Mad Hatter - Sinister Host", type: "Glimmer", cost: 5, qty: 2 },
+            { num: 11, code: "Q1-011", name: "Magica De Spell - Shadowy Sorceress", type: "Glimmer", cost: 4, qty: 2 },
+            { num: 12, code: "Q1-012", name: "Minnie Mouse - Wild-Eyed Diver", type: "Glimmer", cost: 3, qty: 1 },
+            { num: 13, code: "Q1-013", name: "Prince Eric - Grim Groom", type: "Glimmer", cost: 2, qty: 2 },
+            { num: 14, code: "Q1-014", name: "Shark - Toothy Terror", type: "Glimmer", cost: 6, qty: 2 },
+            { num: 15, code: "Q1-015", name: "Tamatoa - Grabby Crab", type: "Glimmer", cost: 5, qty: 2 },
+            { num: 16, code: "Q1-016", name: "Triton's Daughters - Discordant Chorus", type: "Glimmer", cost: 4, qty: 4 },
+            { num: 17, code: "Q1-017", name: "Capsize", type: "Action", cost: 2, qty: 2 },
+            { num: 18, code: "Q1-018", name: "Choppy Waters", type: "Action", cost: 3, qty: 2 },
+            { num: 19, code: "Q1-019", name: "Crushing Wave", type: "Action", cost: 4, qty: 1 },
+            { num: 20, code: "Q1-020", name: "Entangling Magic", type: "Action", cost: 1, qty: 1 },
+            { num: 21, code: "Q1-021", name: "Fortunate Hit", type: "Action", cost: 2, qty: 1 },
+            { num: 22, code: "Q1-022", name: "Lash Out", type: "Action", cost: 3, qty: 2 },
+            { num: 23, code: "Q1-023", name: "Lightning Storm", type: "Action", cost: 5, qty: 1 },
+            { num: 24, code: "Q1-024", name: "Riptide", type: "Action", cost: 2, qty: 1 },
+            { num: 25, code: "Q1-025", name: "Tentacle Swipe", type: "Action", cost: 3, qty: 1 },
+            { num: 26, code: "Q1-026", name: "Tsunami", type: "Action", cost: 6, qty: 1 },
+            { num: 27, code: "Q1-027", name: "Typhoon", type: "Action", cost: 4, qty: 2 },
+            { num: 28, code: "Q1-028", name: "Whirlpool", type: "Action", cost: 2, qty: 1 },
+            { num: 29, code: "Q1-029", name: "The Hexwell Crown", type: "Item", cost: 4, qty: 1 },
+            { num: 30, code: "Q1-030", name: "Ursula's Contract", type: "Item", cost: 3, qty: 4 },
+            { num: 31, code: "Q1-031", name: "Ursula's Stolen Trident", type: "Item", cost: 2, qty: 1 }
+        ];
+
+        // Global Game State
+        let gameState = {
+            playerCount: 2,
+            difficulty: "Normal",
+            gameStarted: false,
+            deck: [],
+            hand: [],
+            row: [], // Array of active cards on board
+            discard: [],
+            inkwell: 0, // Ursula starts with 1 inkwell in Deep Trouble scenario setup
+            lore: 0
+        };
+
+        // Initialize App on DOM Load
+        window.addEventListener('DOMContentLoaded', () => {
+            const restored = loadState();
+            if (!restored) {
+                resetGame(false);
+            } else {
+                renderUI();
+                showToast("Game state restored from save!");
+            }
+        });
+
+        /**
+         * Generates the 50-card deck based on exact card quantities in official scenario
+         */
+        function generate50CardDeck() {
+            let deck = [];
+            CARD_DATA.forEach(c => {
+                for (let k = 0; k < c.qty; k++) {
+                    deck.push(createCardInstance(c));
+                }
+            });
+
+            // Fisher-Yates Shuffle
+            shuffleArray(deck);
+            return deck;
+        }
+
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+        }
+
+        function createCardInstance(baseInfo) {
+            return {
+                uniqueId: 'card_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now(),
+                num: baseInfo.num,
+                code: baseInfo.code,
+                name: baseInfo.name,
+                type: baseInfo.type,
+                cost: baseInfo.cost,
+                exerted: false,
+                damage: 0
+            };
+        }
+
+        function saveState() {
+            try {
+                const jsonStr = JSON.stringify(gameState);
+                localStorage.setItem('ursula_quest_state', jsonStr);
+                document.cookie = `ursula_quest_state=${encodeURIComponent(jsonStr)}; path=/; max-age=864000; SameSite=Lax`;
+            } catch (err) {
+                console.error("Error saving state:", err);
+            }
+        }
+
+        function loadState() {
+            let jsonStr = null;
+            const match = document.cookie.match(/(?:^|; )ursula_quest_state=([^;]*)/);
+            if (match) {
+                try { jsonStr = decodeURIComponent(match[1]); } catch (e) {}
+            }
+
+            if (!jsonStr) {
+                try { jsonStr = localStorage.getItem('ursula_quest_state'); } catch (e) {}
+            }
+
+            if (jsonStr) {
+                try {
+                    const parsed = JSON.parse(jsonStr);
+                    if (parsed && Array.isArray(parsed.deck) && Array.isArray(parsed.row)) {
+                        gameState = parsed;
+                        if (!gameState.difficulty) gameState.difficulty = "Normal";
+                        return true;
+                    }
+                } catch (e) {
+                    console.error("Failed to parse saved state", e);
+                }
+            }
+            return false;
+        }
+
+        function clearState() {
+            document.cookie = "ursula_quest_state=; path=/; max-age=0;";
+            try { localStorage.removeItem('ursula_quest_state'); } catch (e) {}
+        }
+
+        /**
+         * Calculates required card draw according to player count, lore, and difficulty level
+         */
+        function getDrawCountForRules(playerCount, lore, difficulty) {
+            const p = parseInt(playerCount, 10) || 2;
+            const l = parseInt(lore, 10) || 0;
+            let draw = 2;
+
+            if (p === 1) {
+                draw = l < 20 ? 2 : 3;
+            } else if (p === 2) {
+                if (l < 10) draw = 2;
+                else if (l < 30) draw = 3;
+                else draw = 4;
+            } else if (p === 3) {
+                draw = l < 20 ? 3 : 4;
+            } else if (p === 4) {
+                if (l < 10) draw = 3;
+                else if (l < 30) draw = 4;
+                else draw = 5;
+            }
+
+            // Hard and Extreme difficulties add +1 card draw per turn
+            if (difficulty === 'Hard' || difficulty === 'Extreme') {
+                draw += 1;
+            }
+
+            return draw;
+        }
+
+        function drawCards() {
+            if (!gameState.gameStarted) {
+                showToast("Click 'Start / Reset' to initiate the game deck!");
+                return;
+            }
+
+            let drawAmount = getDrawCountForRules(gameState.playerCount, gameState.lore, gameState.difficulty);
+
+            // Check if deck has enough cards; if not, shuffle discard pile back to deck
+            if (gameState.deck.length < drawAmount) {
+                if (gameState.discard.length > 0) {
+                    const discardCopy = [...gameState.discard];
+                    shuffleArray(discardCopy);
+                    gameState.deck = gameState.deck.concat(discardCopy);
+                    gameState.discard = [];
+                    showToast("Deck empty! Discard pile shuffled back into deck.");
+                }
+            }
+
+            if (gameState.deck.length === 0) {
+                showToast("Ursula's deck and discard pile are both empty!");
+                return;
+            }
+
+            const actualDraw = Math.min(drawAmount, gameState.deck.length);
+
+            for (let i = 0; i < actualDraw; i++) {
+                const drawnCard = gameState.deck.shift();
+                gameState.hand.push(drawnCard);
+            }
+
+            showToast(`Drew ${actualDraw} card(s) to Ursula's Hand!`);
+            saveState();
+            renderUI();
+        }
+
+        function onPlayerCountChange(val) {
+            gameState.playerCount = parseInt(val, 10);
+            saveState();
+            renderUI();
+            showToast(`Player count set to ${val}`);
+        }
+
+        function onDifficultyChange(val) {
+            gameState.difficulty = val;
+            saveState();
+            renderUI();
+            showToast(`Difficulty set to ${val}`);
+        }
+
+        function handleStartOrReset() {
+            if (!gameState.gameStarted) {
+                startGame();
+            } else {
+                resetGame(true);
+            }
+        }
+
+        function startGame() {
+            const fullDeck = generate50CardDeck();
+            
+            // Find and pull out Q1-031 (Ursula's Stolen Trident) to start on row
+            const tridentIndex = fullDeck.findIndex(c => c.code === 'Q1-031');
+            let tridentCard = null;
+            if (tridentIndex !== -1) {
+                tridentCard = fullDeck.splice(tridentIndex, 1)[0];
+            } else {
+                tridentCard = createCardInstance(CARD_DATA.find(c => c.code === 'Q1-031'));
+            }
+
+            gameState.deck = fullDeck; // 49 cards left in deck
+            gameState.hand = [];
+            gameState.row = [tridentCard]; // Automatically start Q1-031 on row
+            gameState.discard = [];
+            gameState.inkwell = 0;
+            gameState.lore = 0;
+            gameState.gameStarted = true;
+
+            saveState();
+            renderUI();
+            showToast("Game Started! Q1-031 placed on row. 49 cards in deck.");
+        }
+
+        function resetGame(notify = true) {
+            clearState();
+            gameState = {
+                playerCount: parseInt(document.getElementById('pcount-select').value, 10) || 2,
+                difficulty: document.getElementById('diff-select').value || "Normal",
+                gameStarted: false,
+                deck: [],
+                hand: [],
+                row: [],
+                discard: [],
+                inkwell: 0,
+                lore: 0
+            };
+            renderUI();
+            if (notify) showToast("Board reset and saved data cleared.");
+        }
+
+        function updateInkwell(delta) {
+            gameState.inkwell = Math.max(0, gameState.inkwell + delta);
+            saveState();
+            renderUI();
+        }
+
+        function updateLore(delta) {
+            gameState.lore = Math.max(0, gameState.lore + delta);
+            saveState();
+            renderUI();
+        }
+
+        /**
+         * Opens overlay modal.
+         * mode = 'reveal' shows the top hand card with [DISCARD], [ADD TO ROW], [TO INKWELL]
+         * mode = 'enlarge' shows a row card enlarged without action buttons
+         */
+        function openRevealModal(mode = 'reveal', targetCard = null) {
+            const displayContainer = document.getElementById('modal-card-display');
+            const actionsContainer = document.getElementById('modal-actions-container');
+
+            if (mode === 'reveal') {
+                if (gameState.hand.length === 0) {
+                    showToast("Hand is empty! Draw cards first.");
+                    return;
+                }
+                const topHandCard = gameState.hand[0];
+                displayContainer.innerHTML = generateCardImageOnlyMarkup(topHandCard);
+                actionsContainer.classList.remove('hidden');
+            } else if (mode === 'enlarge') {
+                if (!targetCard) return;
+                displayContainer.innerHTML = generateCardImageOnlyMarkup(targetCard);
+                actionsContainer.classList.add('hidden');
+            }
+
+            document.getElementById('reveal-modal').classList.remove('hidden');
+        }
+
+        function closeRevealModal() {
+            document.getElementById('reveal-modal').classList.add('hidden');
+        }
+
+        function handleRevealAction(action) {
+            if (gameState.hand.length === 0) return;
+
+            const card = gameState.hand.shift(); // Remove top card from hand
+
+            if (action === 'DISCARD') {
+                gameState.discard.push(card);
+                showToast(`Discarded ${card.code}`);
+            } else if (action === 'ADD_TO_ROW') {
+                if (gameState.row.length < 7) {
+                    card.exerted = false;
+                    card.damage = 0;
+                    gameState.row.push(card);
+                    showToast(`Added ${card.code} to Row!`);
+                } else {
+                    showToast("Row is full! Max 7 slots reached.");
+                    gameState.hand.unshift(card); // Put back to hand
+                    return;
+                }
+            } else if (action === 'TO_INKWELL') {
+                gameState.inkwell += 1;
+                showToast(`Moved ${card.code} to Inkwell! Inkwell count +1`);
+            }
+
+            saveState();
+            renderUI();
+
+            // If more cards remain in hand, display next top card; otherwise close modal
+            if (gameState.hand.length > 0) {
+                const nextCard = gameState.hand[0];
+                document.getElementById('modal-card-display').innerHTML = generateCardImageOnlyMarkup(nextCard);
+            } else {
+                closeRevealModal();
+            }
+        }
+
+        function banishCard(index) {
+            if (index < 0 || index >= gameState.row.length) return;
+
+            const banished = gameState.row.splice(index, 1)[0];
+            gameState.discard.push(banished);
+
+            showToast(`Banished ${banished.code}`);
+            saveState();
+            renderUI(); // Cards shift left automatically
+        }
+
+        function enlargeCard(index) {
+            if (gameState.row[index]) {
+                openRevealModal('enlarge', gameState.row[index]);
+            }
+        }
+
+        function toggleRotate(index) {
+            if (gameState.row[index]) {
+                gameState.row[index].exerted = !gameState.row[index].exerted;
+                saveState();
+                renderUI();
+            }
+        }
+
+        function updateDamage(index, delta) {
+            if (gameState.row[index]) {
+                gameState.row[index].damage = Math.max(0, gameState.row[index].damage + delta);
+                saveState();
+                renderUI();
+            }
+        }
+
+        /**
+         * Card Image Only markup for the reveal/enlarge page
+         */
+        function generateCardImageOnlyMarkup(card) {
+            if (!card) return '';
+            const webpFileName = `${card.code}.webp`;
+            return `
+                <div class="w-full h-full flex items-center justify-center relative p-2">
+                    <img src="${webpFileName}" 
+                         alt="Lorcana Card" 
+                         class="max-h-[75vh] w-auto max-w-full object-contain rounded-xl shadow-2xl border-2 border-cyan-500/50"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                    <div class="hidden w-64 h-96 rounded-xl border-2 border-cyan-400 bg-slate-800 flex-col items-center justify-center p-4 text-center">
+                        <span class="text-4xl mb-2">🃏</span>
+                        <span class="text-xl font-bold text-cyan-300">${card.code}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Generates slot image markup for the row
+         */
+        function generateSlotCardMarkup(card) {
+            if (!card) return '';
+            const webpFileName = `${card.code}.webp`;
+
+            return `
+                <div class="w-full h-full relative flex items-center justify-center p-0.5">
+                    <img src="${webpFileName}" 
+                         alt="${card.code}"
+                         class="w-full h-full object-contain rounded ${card.exerted ? 'card-inner-rotated' : 'card-inner-normal'}"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+
+                    <div class="hidden w-full h-full rounded border border-purple-500/60 bg-slate-900 p-1 flex-col items-center justify-center text-center ${card.exerted ? 'card-inner-rotated' : 'card-inner-normal'}">
+                        <span class="text-xs font-bold text-amber-300">${card.code}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderUI() {
+            // Sync top bar metrics
+            document.getElementById('deck-count').innerText = gameState.deck.length;
+            document.getElementById('hand-count').innerText = gameState.hand.length;
+            document.getElementById('discard-count').innerText = gameState.discard.length;
+            document.getElementById('inkwell-count').innerText = gameState.inkwell;
+            document.getElementById('lore-count').innerText = gameState.lore;
+            document.getElementById('pcount-select').value = gameState.playerCount;
+            document.getElementById('diff-select').value = gameState.difficulty;
+
+            // Start/Reset Button text
+            const startResetBtn = document.getElementById('btn-start-reset');
+            if (gameState.gameStarted) {
+                startResetBtn.innerText = "Reset";
+            } else {
+                startResetBtn.innerText = "Start";
+            }
+
+            // Render 7 Active Slots Row
+            const gridContainer = document.getElementById('card-row-grid');
+            gridContainer.innerHTML = '';
+
+            const TOTAL_SLOTS = 7;
+
+            for (let i = 0; i < TOTAL_SLOTS; i++) {
+                const card = gameState.row[i] || null;
+                const slotWrapper = document.createElement('div');
+                slotWrapper.className = "flex flex-col items-center w-full";
+
+                if (card) {
+                    // Filled Card Slot
+                    slotWrapper.innerHTML = `
+                        <!-- Banish & Enlarge Buttons Top -->
+                        <div class="flex items-center gap-1 mb-1.5 w-full justify-center">
+                            <button onclick="banishCard(${i})" class="wf-btn text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded bg-gray-300 text-gray-900 hover:bg-red-500 hover:text-white transition">
+                                Banish
+                            </button>
+                            <button onclick="enlargeCard(${i})" class="wf-btn text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded bg-cyan-300 text-cyan-950 hover:bg-cyan-200 transition">
+                                Enlarge
+                            </button>
+                        </div>
+
+                        <!-- Card Slot Box Container -->
+                        <div class="card-slot-box w-full shadow-lg">
+                            ${generateSlotCardMarkup(card)}
+                        </div>
+
+                        <!-- Bottom Controls: Rotate [R] & Damage Counter -->
+                        <div class="flex items-center justify-between w-full mt-1.5 px-0.5">
+                            <button onclick="toggleRotate(${i})" class="wf-btn text-xs font-black px-2 py-0.5 rounded ${card.exerted ? 'bg-amber-400 text-slate-950 border-amber-600' : ''}">
+                                R
+                            </button>
+                            <div class="flex items-center gap-0.5 font-extrabold text-xs sm:text-sm">
+                                <button onclick="updateDamage(${i}, 1)" class="bg-slate-700 hover:bg-slate-600 px-1.5 py-0.5 rounded text-white text-xs">+</button>
+                                <span class="text-red-400 min-w-[1rem] text-center">${card.damage}</span>
+                                <button onclick="updateDamage(${i}, -1)" class="bg-slate-700 hover:bg-slate-600 px-1.5 py-0.5 rounded text-white text-xs">-</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Empty Card Slot
+                    slotWrapper.innerHTML = `
+                        <!-- Placeholder Top Buttons Space -->
+                        <div class="h-[24px] mb-1.5"></div>
+
+                        <!-- Empty Slot Frame -->
+                        <div class="card-slot-box w-full flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-700 bg-slate-900/40">
+                            <svg class="w-6 h-6 opacity-30 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            <span class="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">Empty</span>
+                        </div>
+
+                        <!-- Placeholder Bottom Controls Space -->
+                        <div class="h-[26px] mt-1.5"></div>
+                    `;
+                }
+
+                gridContainer.appendChild(slotWrapper);
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
