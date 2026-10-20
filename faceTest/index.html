@@ -414,21 +414,23 @@ true;
 
 }else{
 
-faceMesh.material.map =
-texture;
+const oldUv = faceMesh.geometry.attributes.uv;
 
-faceMesh.material.needsUpdate =
-true;
+const newUv = new Float32Array(oldUv.count * 2);
 
+for(let i=0;i<oldUv.count*2;i++){
+    newUv[i] = oldUv.array[i] / 4096;
 }
 
-statusEl.innerText =
-"Texture Applied";
-
-console.log(
-faceMesh.material
+faceMesh.geometry.setAttribute(
+    'uv',
+    new THREE.BufferAttribute(newUv, 2)
 );
 
+faceMesh.material.map = texture;
+faceMesh.material.needsUpdate = true;
+    
+}
 };
 
 function morph(
